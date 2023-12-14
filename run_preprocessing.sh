@@ -43,6 +43,13 @@ then
     done
 fi
 
+# perform another fastqc with trimmed reads
+if [ ! -d "../fastqc_after_trimmo" ]
+then
+    cd ../TRIMMO
+    mkdir ../fastqc_after_trimmo
+    fastqc -o ../fastqc_after_trimmo *.fq
+fi
 
 # Pair fastq reads
 if [ ! -d "../PAIRED" ]
