@@ -7,41 +7,45 @@ source /opt/miniconda3/etc/profile.d/conda.sh
 conda activate metamate_env
 
 # Change working directory to the correct location
-cd ~/Initial_Test_metaMATE/raw_reads
+#cd "$1"
+cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed
 
 # Run fastqc on all fastq files
 if [ ! -d "../fastqc_raw" ]
 then 
     mkdir ../fastqc_raw
-    fastqc -o ../fastqc_raw *.fastq
+    fastqc -o ../fastqc_raw ../01_raw/LIFEPLAN-00001/*.fastq.gz
 fi
 
 # Trim primers
 # TODO rewrite primer trimming. Could be incooperated in trimmomatic
-if [ ! -d "../PTRIM" ]
+# First two bases of EPA45 reads already trimmed
+if [ ! -d "/Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM" ]
 then
-    mkdir ../PTRIM
-    for file in *R1_001.fastq
-    do
-	    fastx_trimmer -f 21 -i ${file} -o ../PTRIM/${file%.*}.Ptrim.fq
+    mkdir /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM
+    cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/01_raw/LIFEPLAN-00001
+    N=16    
+    for file in *Rep1.R(1|2).fastq.gz
+    do        
+        ((i=i%N)); ((i++==0)) && wait
+        echo ${file} 	    
+        gunzip -c ${file} | fastx_trimmer -f 19 -o ../../02_preprocessed/PTRIM/${file%.*}.Ptrim.fq &
     done
 
-    for file in *R2_001.fastq
-    do
-	    fastx_trimmer -f 27 -i ${file} -o ../PTRIM/${file%.*}.Ptrim.fq
-    done
 fi
 
 # Remove ends with low quality
-if [ ! -d "../TRIMMO" ]
+if [ ! -d "/Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/TRIMMO" ]
 then
-    cd ../PTRIM
-    mkdir ../TRIMMO
+    cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM
+    mkdir ../TRIMMO   
     for file in *Ptrim.fq
     do
-        trimmomatic SE -threads 4 -phred33 -trimlog ../TRIMMO/$file.log -summary ../TRIMMO/$file.summary.log $file ../TRIMMO/$file.trimmo.fq TRAILING:20
+        trimmomatic SE -threads 16 -phred33 -trimlog ../TRIMMO/$file.log -summary ../TRIMMO/$file.summary.log $file ../TRIMMO/$file.trimmo.fq TRAILING:20
     done
 fi
+
+cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM
 
 # perform another fastqc with trimmed reads
 if [ ! -d "../fastqc_after_trimmo" ]
@@ -57,9 +61,11 @@ then
     cd ../TRIMMO
     mkdir ../PAIRED
 
+    N=16
     for f1 in *R1*trimmo.fq
     do
-	    echo $f1
+        ((i=i%N)); ((i++==0)) && wait	    
+        echo $f1
 	    part1="$(echo $f1 | sed 's/\(.*\)R1.*/\1/')" 
 	    part2="$(echo $f1 | sed 's/.*R1\(.*\)/\1/')"
 	    
@@ -71,7 +77,7 @@ then
 	    echo "file2: $f2"
 	    echo "executing pairfq_lite ..."
 
-        fastq_pair $f1 $f2  
+        fastq_pair $f1 $f2 & 
 	    echo "done"
      	
     done
@@ -98,10 +104,10 @@ then
 	    f2+="$part2"
 	    
         #para outputs
-	    part3="$(echo $f1 | sed 's/\(.*\)_L001.*/\1/')"
-	    part4="$(echo $f1 | sed 's/\(.*\)_L001_R1\(.*\)Ptrim.*/\2/')"
-	    
-	    
+	    part3="$(echo $f1 | sed 's/\(.*\)_Rep1.*/\1/')"
+	    #part4="$(echo $f1 | sed 's/\(.*\)_Rep1.R1\(.*\)Ptrim.*/\2/')"
+	    part4="_Rep1_"
+
 	    f3="$part3"
 	    f3+="$part4"
 	    f3+="R1_R2.Ptrim.trimmo.fastq"
@@ -117,13 +123,13 @@ then
 	    echo "executing fastq_mergepairs ..."
 	    
         # TODO: add usearch to github folder
-	    ~/usearch11.0.667_i86linux32 -fastq_mergepairs $f1 -reverse $f2 -fastq_minovlen 50 -fastq_maxdiffs 15 -fastq_pctid 50 -fastqout ../MergePair/$f3 -report ../MergePair/$f4 
+	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_mergepairs $f1 -reverse $f2 -fastq_maxdiffs 1 -fastqout ../MergePair/$f3 -report ../MergePair/$f4 
 	    echo "done"
      done
 fi
 
 
-# maxee1
+# discard sequences with a maximum expected error (maxee)>1
 if [ ! -d "../maxee1" ]
 then
     cd ../MergePair
@@ -146,7 +152,7 @@ then
 
 	    echo "executing maxee 1 ..."
 
-	    ~/usearch11.0.667_i86linux32 -fastq_filter $f1 -fastq_maxee 1 -fastaout ../maxee1/$f2 &> ../maxee1/$f3
+	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_filter $f1 -fastq_maxee 1 -fastaout ../maxee1/$f2 &> ../maxee1/$f3
 	    
 	    echo "done"
      done
@@ -171,10 +177,8 @@ then
 fi
 
 
-
-
-#SortLength_uniques_denoise_420.sh
-#sortbylength and keeping only reads of 420 on labelling by lib
+# sort by length
+# and keeping only reads of 418 (exact length) + - 2 (416-4120) on labelling by lib and primer (normal path)
 if [ ! -d "../LENGTH416_420" ]
 then
     cd ../LABEL_lib
@@ -195,7 +199,7 @@ then
 	    echo "output: $f2"
 	    echo "executing sortbylength 420 ..."
 	    
-	    ~/usearch11.0.667_i86linux32 -sortbylength $f1  -fastaout ../LENGTH416_420/$f2 -minseqlength 416 -maxseqlength 420 &> ../LENGTH416_420/$f2log
+	    ~/usearch11.0.667_i86linux32 -threads 16 -sortbylength $f1  -fastaout ../LENGTH416_420/$f2 -minseqlength 416 -maxseqlength 420 &> ../LENGTH416_420/$f2log
 	    
 	    echo "done sortbylength 416-420 ..."
     done		
@@ -203,10 +207,8 @@ then
 fi
 
 
-
-
-#sortbylength and keeping only reads of 418 (exact length) + - 2 (416-4120) on labelling by lib and primer (normal path)		
-#Combine by sample
+		
+# keep unique (dereplication)
 if [ ! -d "../UNIQUESbyLIB" ]
 then
     cd ../LENGTH416_420
@@ -226,14 +228,16 @@ then
         echo "input: $f1"
 	    echo "output: $f2"			
 	    echo "executing fastx_uniques ..."
-	    ~/usearch11.0.667_i86linux32 -fastx_uniques ./$f1 -fastaout ../UNIQUESbyLIB/$f2 -sizeout &> ../UNIQUESbyLIB/$f2log
+	    ~/usearch11.0.667_i86linux32 -threads 16 -fastx_uniques ./$f1 -fastaout ../UNIQUESbyLIB/$f2 -sizeout &> ../UNIQUESbyLIB/$f2log
 	    echo "done fastx_uniques ..."
      		
     done			
 fi
  
 
-#unosie3 by lib
+# unoise3 by lib
+# error correction
+# denoised zero-radius OTUs (zOTUs)
 if [ ! -d "../UNOISE" ]
 then
     cd ../UNIQUESbyLIB
@@ -254,7 +258,7 @@ then
         echo "input: $f1"
         echo "output: $f2"
         echo "executing unoise3 ..."
-        ~/usearch11.0.667_i86linux32 -unoise3 ./$f1 -zotus ../UNOISE/$f2 -minsize 2 -tabbedout ../UNOISE/$f2tabout &>../UNOISE/$f2log
+        ~/usearch11.0.667_i86linux32 -unoise3 ./$f1 -zotus ../UNOISE/$f2 -minsize 2 -threads 16 -tabbedout ../UNOISE/$f2tabout &>../UNOISE/$f2log
         echo "done unoise3 ..."
      
      done
@@ -282,8 +286,8 @@ then
     cd ../RELABEL
     cat *relabel.fas > all.ZOTUSbySAMPLE.FV.fas
 
-    # Only keep uniques
-    ~/usearch11.0.667_i86linux32 -fastx_uniques all.ZOTUSbySAMPLE.FV.fas -fastaout all.ZOTUS_UNIQUES.FV.fas -sizeout &> all.ZOTUS_UNIQUES.FV.log
+    # Only keep uniques (in the fasta that inlcudes all inviduals)
+    ~/usearch11.0.667_i86linux32 -fastx_uniques all.ZOTUSbySAMPLE.FV.fas -fastaout all.ZOTUS_UNIQUES.FV.fas -threads 16 -sizeout &> all.ZOTUS_UNIQUES.FV.log
 fi
 
 
