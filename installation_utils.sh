@@ -8,6 +8,7 @@ conda install -c bioconda fastq-pair
 conda install -c bioconda trimmomatic
 conda install -c "bioconda/label/cf201901" samtools
 conda install -c bioconda vsearch
+conda install -c conda-forge pigz
 
 sudo apt install cutadapt
 
