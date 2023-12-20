@@ -9,3 +9,5 @@ conda install -c bioconda trimmomatic
 conda install -c "bioconda/label/cf201901" samtools
 conda install -c bioconda vsearch
 
+sudo apt install cutadapt
+
