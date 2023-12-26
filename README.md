@@ -10,7 +10,7 @@ The conda environment was created as follows:
 ```
 conda create --name metamate_env
 conda init fish # other shells, such as bash or zsh, can also be used
-conda activate metamate_env
+conda activate metamate_env python=3.10
 ```
 
 Now, within the newly created metamate_env, the installation of these tools can be done using the **installation_utils.sh** bash script. 
