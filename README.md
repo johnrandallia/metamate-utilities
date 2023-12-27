@@ -22,6 +22,12 @@ Now, within the newly created metamate_env, the installation of these tools can 
 - vsearch
 
 
+To run the error correction with deblur instead of unoise3 we used
+```
+conda create -n deblur_env -c bioconda deblur
+conda activate deblur_env
+```
+
 ## Execution of data preprocessing pipeline
 To execute the **run_processing.sh** script the binary of usearch needs to be downloaded first (due to licencing issues not included in this git repo)
 After running the script follow the steps described on the metamate github repo.
