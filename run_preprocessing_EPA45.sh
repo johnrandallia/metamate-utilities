@@ -22,27 +22,39 @@ if [ ! -d "cutadapt/" ]
 then
     mkdir cutadapt
     cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/01_raw_Rep1_r1_r2_ordered/
-    for file in */*.fastq.gz
+    for file in */*.R1.fastq.gz
     do        
-        echo ${file} 	    
-        cutadapt -j 16 -g ^CCNGAYATRGCNTTYCCNCG -g ^CNGAYATRGCNTTYCCNCG -g ^NGAYATRGCNTTYCCNCG -g ^GAYATRGCNTTYCCNCG -g ^AYATRGCNTTYCCNCG -G ^TCNGGRTGNCCRAARAAYCA \
-        -G ^CNGGRTGNCCRAARAAYCA -G ^NGGRTGNCCRAARAAYCA -G ^GGRTGNCCRAARAAYCA -G ^GRTGNCCRAARAAYCA ${file} -o ../../02_preprocessed/cutadapt/${file%.*}.cutadapt.fq
+        echo ${file}
+	    part1="$(echo ${file} | sed 's/\(.*\)R1.*/\1/')" 
+	    part2="$(echo ${file} | sed 's/.*R1\(.*\)/\1/')"
+	    
+	    f2="$part1"
+        f2+="R2"
+		f2+="$part2"
+
+        basename1="$(basename ${file})"
+        r1_output="${basename1%.*}"
+        basename2="$(basename ${f2})"
+        r2_output="${basename2%.*}"          
+ 	    
+        cutadapt -j 16 -e 0 --untrimmed-output ../02_preprocessed/cutadapt/${r1_output}.no_adapter.fq --untrimmed-paired-output ../02_preprocessed/cutadapt/${r2_output}.no_adapter.fq \
+        -g ^CCNGAYATRGCNTTYCCNCG -g ^CNGAYATRGCNTTYCCNCG -g ^NGAYATRGCNTTYCCNCG -g ^GAYATRGCNTTYCCNCG -g ^AYATRGCNTTYCCNCG -G ^TCNGGRTGNCCRAARAAYCA -G ^CNGGRTGNCCRAARAAYCA -G ^NGGRTGNCCRAARAAYCA -G ^GGRTGNCCRAARAAYCA \
+        -G ^GRTGNCCRAARAAYCA ${file} ${f2} -o ../02_preprocessed/cutadapt/${r1_output}.cutadapt.fq -p ../02_preprocessed/cutadapt/${r2_output}.cutadapt.fq
     done
 fi
-
 
 # Remove ends with low quality
 if [ ! -d "/Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/TRIMMO" ]
 then
-    cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM
+    cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/cutadapt
     mkdir ../TRIMMO   
-    for file in *Ptrim.fq
+    for file in *cutadapt.fq
     do
         trimmomatic SE -threads 16 -phred33 -trimlog ../TRIMMO/$file.log -summary ../TRIMMO/$file.summary.log $file ../TRIMMO/$file.trimmo.fq TRAILING:20
     done
 fi
 
-cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/PTRIM
+cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/cutadapt
 
 # perform another fastqc with trimmed reads
 if [ ! -d "../fastqc_after_trimmo" ]
@@ -119,14 +131,13 @@ then
 
 	    echo "executing fastq_mergepairs ..."
 	    
-        # TODO: add usearch to github folder
-	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_mergepairs $f1 -reverse $f2 -fastq_maxdiffs 1 -fastqout ../MergePair/$f3 -report ../MergePair/$f4 
+	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_mergepairs $f1 -reverse $f2 -fastq_maxdiffs 10 -fastq_pctid 80 -fastqout ../MergePair/$f3 -report ../MergePair/$f4 
 	    echo "done"
      done
 fi
 
 
-# discard sequences with a maximum expected error (maxee)>1
+# discard sequences with a maximum expected error (maxee)>2
 if [ ! -d "../maxee1" ]
 then
     cd ../MergePair
@@ -150,6 +161,36 @@ then
 	    echo "executing maxee 1 ..."
 
 	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_filter $f1 -fastq_maxee 1 -fastaout ../maxee1/$f2 &> ../maxee1/$f3
+	    
+	    echo "done"
+     done
+fi
+
+
+# discard sequences with a maximum expected error (maxee)>2
+if [ ! -d "../maxee2" ]
+then
+    cd ../MergePair
+    mkdir ../maxee2
+
+    for f1 in *R1_R2.Ptrim.trimmo.fastq
+    do
+	    echo $f1
+	    part1="$(echo $f1 | sed 's/\(.*\)fastq*/\1/')"    
+
+	    f2="$part1"
+        f2+="Maxee2.fas"
+
+		f3="$part1"
+        f3+="Maxee2.log"
+
+	    echo "input: $f1"
+	    echo "output: $f2"
+	    echo "logfile: $f3"
+
+	    echo "executing maxee 2 ..."
+
+	    ~/usearch11.0.667_i86linux32 -threads 16 -fastq_filter $f1 -fastq_maxee 2 -fastaout ../maxee2/$f2 &> ../maxee2/$f3
 	    
 	    echo "done"
      done
@@ -231,6 +272,12 @@ then
     done			
 fi
  
+##############################################################################################################################
+#                                                                                                                       
+#                                           UNOISE 3
+#
+##############################################################################################################################
+
 
 # unoise3 by lib
 # error correction
@@ -262,11 +309,11 @@ then
 fi
 
 
-# RELABEL
-if [ ! -d "../RELABEL" ]
+# RELABEL and join UNOISE
+if [ ! -d "../../03_error_corrected_without_metamate/UNOISE_relabelled_joined" ]
 then
     cd ../UNOISE
-    mkdir ../RELABEL
+    mkdir ../../03_error_corrected_without_metamate/UNOISE_relabelled_joined
     for file in *zotus.fas
     do	
 	    part1="$(echo $file | sed 's/\(.*\)_R1.*.*/\1/')" 
@@ -275,17 +322,46 @@ then
 	    
 	    echo $file
 	    echo $label
-        sed "-es/^>\(.*\)/>\1_$label/" < ${file} > ../RELABEL/${file%.*}.relabel.fas
+        sed "-es/^>\(.*\)/>\1_$label/" < ${file} > ../../03_error_corrected_without_metamate/UNOISE_relabelled_joined/${file%.*}.relabel.fas
      
     done
 
     # Join all zotus individuals
-    cd ../RELABEL
+    cd ../../03_error_corrected_without_metamate/UNOISE_relabelled_joined
     cat *relabel.fas > all.ZOTUSbySAMPLE.FV.fas
 
     # Only keep uniques (in the fasta that inlcudes all inviduals)
     ~/usearch11.0.667_i86linux32 -fastx_uniques all.ZOTUSbySAMPLE.FV.fas -fastaout all.ZOTUS_UNIQUES.FV.fas -threads 16 -sizeout &> all.ZOTUS_UNIQUES.FV.log
 fi
+
+
+
+
+
+
+##############################################################################################################################
+#
+#                                               BFC (Illumina)
+#
+##############################################################################################################################
+
+# experiment with different values of -s to see what works best for your specific data. 
+# If you find that the error correction tool is making too many false positive calls, you may want to try a smaller value of -s. 
+# Conversely, if you find that the error correction tool is not correcting enough errors, you may want to try a larger value of -s.
+
+if [ ! -d "../bfc_s1" ]
+then
+    cd /Datos/mockcommunities_EPA45/epa45_metabarcodes/sequences/02_preprocessed/UNIQUESbyLIB
+    mkdir ../bfc_s1
+
+    for f1 in *uniques.fas
+    do
+        echo $f1
+        bfc -s 1 -t16 $f1 > ../bfc_s1/$f1"_bfc.fas"
+    done
+fi
+
+
 
 
 

@@ -11,4 +11,9 @@ conda install -c bioconda vsearch
 conda install -c conda-forge pigz
 
 sudo apt install cutadapt
+pip3 install levenshtein
 
+conda install -c bioconda bfc
+conda install -c adriantich dnoise
+
+conda install -c conda-forge r-base=4.0.0
