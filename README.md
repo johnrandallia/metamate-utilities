@@ -8,9 +8,9 @@ To avoid dependency issues and for easier management of the tools we used minico
 The conda environment was created as follows:
 
 ```
-conda create --name metamate_env
+conda create --name metamate_env python=3.10 r-base=4.0.0
 conda init fish # other shells, such as bash or zsh, can also be used
-conda activate metamate_env python=3.10
+conda activate metamate_env
 ```
 
 Now, within the newly created metamate_env, the installation of these tools can be done using the **installation_utils.sh** bash script. 
