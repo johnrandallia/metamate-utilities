@@ -8,7 +8,7 @@ To avoid dependency issues and for easier management of the tools we used minico
 The conda environment was created as follows:
 
 ```
-conda create --name metamate_env python=3.10 r-base=4.0.0
+conda create --name metamate_env python=3.10
 conda init fish # other shells, such as bash or zsh, can also be used
 conda activate metamate_env
 ```
