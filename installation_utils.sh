@@ -9,6 +9,7 @@ conda install -c bioconda trimmomatic
 conda install -c "bioconda/label/cf201901" samtools
 conda install -c bioconda vsearch
 conda install -c conda-forge pigz
+conda install biopython
 
 sudo apt install cutadapt
 pip3 install levenshtein
