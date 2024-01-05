@@ -28,9 +28,19 @@ conda create -n deblur_env -c bioconda deblur
 conda activate deblur_env
 ```
 
+
 ## Execution of data preprocessing pipeline
 To execute the **run_processing.sh** script the binary of usearch needs to be downloaded first (due to licencing issues not included in this git repo)
 After running the script follow the steps described on the metamate github repo.
+
+
+## Using LotuS2
+Install lotus2 with
+```
+conda create -c conda-forge -c bioconda --strict-channel-priority -n lotus2_env lotus2
+lotus2 -link_usearch >path_to_usearch<
+```
+
 
 
 ## Change Log
