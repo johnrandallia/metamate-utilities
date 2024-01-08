@@ -47,12 +47,18 @@ In this example we want to create a reference database using the BOLD COI Arthro
 For this, the qiime plugin RESCRIPt will be used.
 ```
 conda install -c conda-forge -c bioconda -c qiime2 -c https://packages.qiime2.org/qiime2/2023.5/tested/-c defaults conda activate qiime2-amplicon-2023.9
-
 conda activate qiime2-amplicon-2023.9
-
 mamba install -c conda-forge -c bioconda -c qiime2 -c https://packages.qiime2.org/qiime2/2023.5/tested/ -c defaults qiime2 q2cli q2templates q2-types q2-longitudinal q2-feature-classifier 'q2-types-genomics>2023.2' "pandas>=0.25.3" xmltodict ncbi-datasets-pylib
+
+conda install r-taxize
 ```
 
+First download the bold_datapull_byGroup.R that is provided by the author of RESCRIPt.
+Install the dependencies in R
+```
+library(bold)
+library(dplyr)
+```
 
 ## Change Log
 v1 
