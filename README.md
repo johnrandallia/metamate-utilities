@@ -44,11 +44,13 @@ lotus2 -link_usearch >path_to_usearch<
 
 ## Prepare Reference Database
 In this example we want to create a reference database using the BOLD COI Arthropod dataset.
-For this, the qiime plugin RESCRIPt will be used.
+For this, the qiime plugin RESCRIPt will be used. If there are errors popping up after installation reinstall numpy and h5py
 ```
 conda install -c conda-forge -c bioconda -c qiime2 -c https://packages.qiime2.org/qiime2/2023.5/tested/-c defaults conda activate qiime2-amplicon-2023.9
 conda activate qiime2-amplicon-2023.9
 mamba install -c conda-forge -c bioconda -c qiime2 -c https://packages.qiime2.org/qiime2/2023.5/tested/ -c defaults qiime2 q2cli q2templates q2-types q2-longitudinal q2-feature-classifier 'q2-types-genomics>2023.2' "pandas>=0.25.3" xmltodict ncbi-datasets-pylib
+
+pip install git+https://github.com/bokulich-lab/RESCRIPt.git
 
 conda install r-taxize
 ```
